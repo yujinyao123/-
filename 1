@@ -1,0 +1,385 @@
+#include<iostream>
+#include<Windows.h>
+#include <conio.h>
+using namespace std;
+struct elevator
+{
+    int maxPeople;
+    int nowPeople;
+    int ifFloor;//已满1、未满0
+    int serveFloor;//全部3、单层1、双层0
+    int outPeople[21];
+    int inPeople[21];
+    int staut;//上升1、下降-1、停⽌0
+    int floor;
+};
+struct elevator a[4];
+int number(int x)//取绝对值
+{
+    if (x < 0)
+        return -x;
+    else
+        return x;
+}
+void Iint()//各个电梯初始化
+{
+    for (int i=0; i < 4; i++)
+    {
+        for (int j = 0; j < 21; j++)
+        {
+            a[i].inPeople[j] = -1;
+            a[i].outPeople[j] = -1;
+        }
+        a[i].nowPeople = 0;
+        a[i].ifFloor = 0;
+    }
+    a[0].maxPeople = 10;
+    a[0].serveFloor = 3;
+    a[0].staut = 0;
+    a[0].floor = 20;
+    a[1].maxPeople = 10;
+    a[1].serveFloor = 1;
+    a[1].staut = 0;
+    a[1].floor = 9;
+    a[2].maxPeople = 20;
+    a[2].serveFloor = 0;
+    a[2].staut = 0;
+    a[2].floor = 10;
+    a[3].maxPeople = 20;
+    a[3].serveFloor = 3;
+    a[3].staut = 0;
+    a[3].floor = 1;
+}
+void gotoxy(HANDLE hOut, int x, int y)//光标移到指定位置
+{
+    COORD pos;
+    pos.X = x;             //横坐标
+    pos.Y = y;            //纵坐标
+    SetConsoleCursorPosition(hOut, pos);
+}
+void ifFull(int i)//判断电梯是否超载
+{
+    if (a[i].maxPeople < a[i].nowPeople)
+    {
+        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+        gotoxy(hOut, 0, 4);
+        cout << "电梯已满！" << endl;
+        Sleep(1000);
+        gotoxy(hOut, 0, 4);
+        cout << "                                                      ";
+        a[i].ifFloor = 1;
+        return;
+    }
+    else
+    {
+        a[i].ifFloor = 0;
+        return;
+    }
+}
+void getIn(int i)//进⼊电梯
+{
+    a[i].outPeople[a[i].floor] = -1;
+    int flag1, flag2;
+    flag1 = 1;
+    flag2 = 1;
+    for (int j = 0; j < 21; j++)//电梯是否需要继续运⾏
+    {
+        if (flag1 == 1 && a[i].inPeople[j] == -1)
+            continue;
+        else
+        {
+            flag1 = 0;
+            break;
+        }
+    }
+    for (int j = 0; j < 21; j++)
+    {
+        if (flag2 == 1 && a[i].outPeople[j] == -1)
+            continue;
+        else
+        {
+            flag2 = 0;
+            break;
+        }
+    }
+    if (flag1 == 1 && flag2 == 1)
+        a[i].staut = 0;
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);//定义显⽰器句柄变量
+    int f;
+    gotoxy(hOut, 0, 3);
+    cout << "输⼊⽬的层数";
+    cin >> f;
+    gotoxy(hOut, 0, 3);
+    cout << "                                                      ";
+    if (f % 2 == a[i].serveFloor || a[i].serveFloor == 3)//此电梯是否到⽬的层
+    {
+        a[i].nowPeople++;
+        ifFull(i);
+        if (a[i].staut == 0)//电梯如果是暂停状态，更改⽬的状态
+        {
+            if (a[i].floor > f)
+                a[i].staut = -1;
+            if (a[i].floor < f)
+                a[i].staut = 1;
+        }
+        a[i].inPeople[f] = 1;//标记⽬的层数
+    }
+    else
+    {
+        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+        gotoxy(hOut, 0, 4);
+        cout << "此电梯不到⽬的层";
+        Sleep(1000);
+        gotoxy(hOut, 0, 4);
+        cout << "                                                      ";
+    }
+}
+void getOut(int i)//出电梯
+{
+    a[i].nowPeople--;
+    ifFull(i);
+    a[i].inPeople[a[i].floor] = -1;
+}
+void display()//结果显⽰
+{
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);//定义显⽰器句柄变量
+    for (int i = 0, j = 0; i < 4; i++,j=j+6)
+    {
+        gotoxy(hOut, j, 0);
+        if (a[i].staut == 1)
+        {
+            if (a[i].floor>=10)
+                cout << "↑" << a[i].floor;
+            else
+                cout << "↑0" << a[i].floor;
+        }
+        if (a[i].staut == 0)
+        {
+            if (a[i].floor >= 10)
+                cout << "__" << a[i].floor;
+            else
+                cout << "__0" << a[i].floor;
+        }
+        if (a[i].staut == -1)
+        {
+            if (a[i].floor >= 10)
+                cout << "↓" << a[i].floor;
+            else
+                cout << "↓0" << a[i].floor;
+        }
+    }
+}
+void change()//更新电梯状态
+{
+    int flag1, flag2, i;
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);//定义显⽰器句柄变量
+    for (i = 0; i < 4; i++)
+    {
+        flag1 = 1;
+        flag2 = 1;
+        if (a[i].staut == 1)//上升状态的电梯
+        {
+            if (a[i].inPeople[a[i].floor] == 1)
+            {
+                gotoxy(hOut, 0, 4);
+                cout << a[i].floor << "到了！乘客出电梯";
+                Sleep(1000);
+                gotoxy(hOut, 0, 4);
+                cout << "                                                      ";
+                getOut(i);
+            }
+            if (a[i].outPeople[a[i].floor] == 1)
+            {
+                gotoxy(hOut, 0, 4);
+                cout << a[i].floor << "到了！乘客进⼊电梯";
+                Sleep(1000);
+                gotoxy(hOut, 0, 4);
+                cout << "                                                      ";
+                getIn(i);
+            }
+            for (int j = 0; j < 21; j++)//判断电梯是否需要继续运⾏
+            {
+                if (flag1 == 1 && a[i].inPeople[j] == -1)
+                    continue;
+                else
+                {
+                    flag1 = 0;
+                    break;
+                }
+            }
+            for (int j = 0; j < 21; j++)
+            {
+                if (flag2 == 1 && a[i].outPeople[j] == -1)
+                    continue;
+                else
+                {
+                    flag2 = 0;
+                    break;
+                }
+            }
+            if (flag1 == 1 && flag2 == 1)
+                a[i].staut = 0;
+            else
+                a[i].floor++;//电梯继续上⾏
+        }
+        if (a[i].staut == -1)//下降状态的电梯
+        {
+            if (a[i].inPeople[a[i].floor] == 1)
+            {
+                gotoxy(hOut, 0, 4);
+                cout << a[i].floor << "到了！乘客出电梯";
+                Sleep(1000);
+                gotoxy(hOut, 0, 4);
+                cout << "                                                      ";
+                getOut(i);
+            }
+            if (a[i].outPeople[a[i].floor] == 1)
+            {
+                gotoxy(hOut, 0, 4);
+                cout << a[i].floor << "到了！乘客进⼊电梯";
+                Sleep(1000);
+                gotoxy(hOut, 0, 4);
+                cout << "                                                      ";
+                getIn(i);
+            }
+            for (int j = 0; j < 21; j++)//电梯是否需要继续运⾏
+            {
+                if (flag1 == 1 && a[i].inPeople[j] == -1)
+                    continue;
+                else
+                {
+                    flag1 = 0;
+                    break;
+                }
+            }
+            for (int j = 0; j < 21; j++)
+            {
+                if (flag2 == 1 && a[i].outPeople[j] == -1)
+                    continue;
+                else
+                {
+                    flag2 = 0;
+                    break;
+                }
+            }
+            if (flag1 == 1 && flag2 == 1)
+                a[i].staut = 0;
+            else
+                a[i].floor--;//电梯继续下降
+        }
+    }
+    display();
+}
+int ifSever(int floor, int direction, int elevator)//判断电梯是否相应此⽤户
+{
+    if (a[elevator].ifFloor == 0)//不超载
+    {
+        if (a[elevator].serveFloor == 3 || floor % 2 == a[elevator].serveFloor)//全部和双层
+        {
+            if (a[elevator].staut == 0)//停⽌状态
+                return 1;
+            if (a[elevator].staut == 1 && a[elevator].staut == direction)//上升且⽤户也上升
+            {
+                if (a[elevator].floor <= floor)
+                    return 1;
+                else
+                    return 0;
+            }
+            if (a[elevator].staut == -1 && a[elevator].staut == direction)//下降且⽤户也下降
+            {
+                if (a[elevator].floor >= floor)
+                    return 1;
+                else
+                    return 0;
+            }
+            return 0;
+        }
+        else
+            return 0;
+    }
+    else
+        return 0;
+}
+int search(int floor,int direction)//查询哪个电梯为⽤户服务
+{
+    int min[4] = { 100, 100, 100, 100 };
+    int flag;
+    int x;
+    for (int i = 0; i < 4; i++)
+    {
+        flag = ifSever(floor, direction, i);
+        if (flag==1)//计算电梯运⾏距离
+        {
+            x = a[i].floor - floor;
+            min[i] = number(x);
+        }
+        else
+            continue;
+    }
+    int temp, num;
+    temp = min[0];
+    num = 0;//标记电梯号
+    for (int i = 1; i < 4; i++)//计算最近楼层
+    {
+        if (min[i] < temp)
+        {
+            temp = min[i];
+            num = i;
+        }
+    }
+    if (temp != 100)
+    {
+        a[num].outPeople[floor] = 1;
+        if (a[num].staut==0)
+        {
+            if (a[num].floor > floor)
+                a[num].staut = -1;
+            if (a[num].floor < floor)
+                a[num].staut = 1;
+            if (a[num].floor == floor)
+                a[num].staut = direction;
+        }
+        return 1;
+    }
+    return 0;
+}
+
+void Inset()//⽤户输⼊
+{
+ HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);//定义显⽰器句柄变量
+ int peopleFloor, peopleDirection, flag;
+ gotoxy(hOut, 0, 2);
+ cout << "输⼊请求的楼层数和⽅向（1为向上，-1为向下）";
+ cin >> peopleFloor;
+ cin >> peopleDirection;
+ gotoxy(hOut, 0, 2);
+ cout << "                                                      ";
+ flag = search(peopleFloor, peopleDirection);
+ if (flag == 1)//如果查询到服务的电梯
+  return;
+ else
+ {
+  while (flag == 0)
+  {
+   change();
+   flag = search(peopleFloor, peopleDirection);
+  }
+ }
+}
+void main()
+{
+ Iint();
+ display();
+ char c;
+ while (1)
+ {
+  HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+  gotoxy(hOut, 0, 1);
+  cout << "是否输⼊";
+  cin >> c;
+  if (c == 'y')
+   Inset();
+  change();
+ }
+ system("pause");
+}
